@@ -1,0 +1,130 @@
+mkdir homeapp/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homeapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homeapp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: homeapp
+    spec:
+      containers:
+      - name: homeapp
+        image: rajatpzade/myhome:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 80
+
+--------------------------------------------------------
+homeapp/service.yaml
+service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: homeapp-service
+spec:
+  selector:
+    app: homeapp
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP
+-----------------------------------------------------------
+mkdir mobileapp/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobileapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mobileapp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: mobileapp
+    spec:
+      containers:
+      - name: mobileapp
+        image: rajatpzade/mobileapp:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 80
+    ----------------------------------------------
+    mobileapp/service.yaml
+    service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobileapp-service
+spec:
+  selector:
+    app: mobileapp
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP
+-----------------------------------------------
+ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.com
+    http:
+      paths:
+      - path: /home
+        pathType: Prefix
+        backend:
+          service:
+            name: homeapp-service
+            port:
+              number: 80
+      - path: /mobile
+        pathType: Prefix
+        backend:
+          service:
+            name: mobileapp-service
+            port:
+              number: 80
+    --------------------------------------------
+    helm chart
+wget https://get.helm.sh/helm-v3.16.4-linux-amd64.tar.gz
+tar -zxvf helm-v3.16.4-linux-amd64.tar.gz
+sudo mv linux-amd64/helm /usr/local/bin/helm
+helm version
+-----------------------------------------------------------------
+helm install my-release oci://ghcr.io/nginxinc/charts/nginx-ingress --version 2.0.0
